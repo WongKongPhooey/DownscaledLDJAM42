@@ -1,0 +1,523 @@
+counter=0
+timer=20
+gameframe=0
+scrx=17
+scry=26
+scrw=94
+scrh=46
+ancx=0
+ancv=1
+
+pspr=0
+px=scrx+23
+py=scry+30
+ph=16
+pw=5
+dampy=0
+plist={0,1,0,2}
+psprc=1
+psprshft=0
+psprlvlshft=0
+rolling=false
+jv=0
+jc=0
+coins=0
+collectedcoins=0
+totalcoins=0
+
+coinx=100
+coiny=52
+coinv=2
+coinw=4
+coinh=6
+coinspr=32
+
+boxx=140
+boxy=56
+boxv=2
+boxw=8
+boxh=8
+boxspr=36
+boxeshit=0
+boxessmashed=0
+totalboxes=0
+
+flagx=-128
+flagy=64
+grade="na"
+gameover=false
+
+if gameframe == 2 then
+ scrx=48
+ scry=26
+ scrw=32
+ scrh=32
+ px=scrx+6
+ py=scry+23
+ jv=0
+ jc=0
+ psprlvlshft=8
+ coinv=2
+ boxy=49
+ boxspr=36
+end
+if gameframe == 3 then
+ scrx=50
+ scry=46
+ scrw=24
+ scrh=24
+ px=scrx+4
+ py=scry+18
+ jv=0
+ jc=0
+ psprlvlshft=24
+ coinv=1
+ coinw=4
+ coinh=4
+ coinspr=37
+ boxy=64
+ boxv=1
+ boxw=4
+ boxh=4
+ boxspr=41
+end
+
+music(0)
+
+function _update()
+ 
+ --game counter
+ counter+=1
+ if counter>=30 and gameframe>0 then
+  counter=0
+  timer-=1
+ end
+ if btn(4) and gameframe==0 then
+  gameframe=1
+  coinx=100
+  boxx=140
+ end
+ 
+ if coins < 0 then
+  coins=0
+ end
+ 
+ --pre game
+ if gameframe==0 then
+  coinx=100
+  boxx=140
+ end
+ --end game
+ if gameframe==3 and timer <= 2 and flagx<0 then
+  flagx=90
+ end
+ if flagx<=px and flagx>0 then
+  --game over
+  gameover=true
+  endgrade()
+ end
+ 
+ --change frame
+ if timer <= 0 then
+  timer=20
+  ancx-=ancv
+ end
+ if ancx<0 then
+  ancx-=ancv
+  if counter%2==0 then
+   ancv+=1
+  end
+ end
+ if ancx>0 then
+  ancx-=ancv
+  if counter%2==0 then
+   ancv-=1
+  end
+  if ancx < 3 and ancx >= 0 then
+   ancx=0
+   ancv=1
+  end
+ end
+ if ancx<=-128 then
+  gameframe+=1
+  ancx=128
+  coinx=scrx-7
+  if gameframe == 2 then
+   scrx=48
+   scry=26
+   scrw=32
+   scrh=32
+   px=scrx+6
+   py=scry+23
+   jv=0
+   jc=0
+   psprlvlshft=8
+   coinv=2
+   boxy=49
+  end
+  if gameframe == 3 then
+   scrx=50
+   scry=46
+   scrw=24
+   scrh=24
+   px=scrx+4
+   py=scry+18
+   jv=0
+   jc=0
+   psprlvlshft=24
+   coinspr=37
+   coinv=1
+   coinw=4
+   coinh=4
+   boxy=64
+   boxv=1
+   boxw=4
+   boxh=4
+   boxspr=41
+  end
+  if gameframe==5 then
+   gameframe=0
+   run()
+  end
+ end
+ 
+ --anim player
+ if counter%2==0 then
+  psprc=psprc+1
+ end
+ if psprc==5 then
+  psprc=1
+ end
+ 
+  --roll!
+ if btn(3) then
+  if rolling==false then
+   sfx(17)
+  end
+  rolling=true
+  psprshft=3
+  plist={1,2,3,4}
+ end
+ 
+ pspr=psprshft+psprlvlshft+plist[psprc]
+ 
+ --coin anim
+ if counter%4==0 then
+  coinspr=coinspr+1
+ end
+ if gameframe==3 then
+  if coinspr>=41 then
+   coinspr=37
+  end
+ else
+  if coinspr>=36 then
+   coinspr=32
+  end
+ end
+ coinx-=coinv
+ if collides(coinx,coiny,coinw,coinh) then
+  coinx = scrx+scrw+8
+  coiny = flr(rnd(12))+scry+8
+  if gameover==false then
+   coins+=1
+   collectedcoins+=1
+   totalcoins+=1
+   sfx(18)
+  end
+ end
+ if coinx < scrx-8 then
+  coinx = scrx+scrw+8
+  coiny = flr(rnd(12))+scry+8
+  if gameover==false then
+   totalcoins+=1
+  end
+ end
+ 
+ --box anim
+ boxx-=boxv
+ if collides(boxx,boxy,boxw,boxh) then
+  boxx = scrx+scrw+8+rnd(80)
+  if rolling == false then
+   coins-=flr(rnd(4)) + 2
+   if gameover==false then
+    boxeshit+=1
+    sfx(19)
+   end
+  else
+   if gameover==false then
+    boxessmashed+=1
+    sfx(20)
+   end
+  end
+  if gameover==false then
+   totalboxes+=1
+  end
+ end
+ if boxx < scrx-8 then
+  boxx = scrx+scrw+8+rnd(80)
+ end
+ 
+ --flag anim
+ flagx-=1
+ 
+ --jump!
+ if btn(2) and jc==0 then
+  sfx(16)
+  rolling=false
+  plist={0,1,0,2}
+  psprshft=0
+  jv=6
+  jc=11
+ end
+ if jc > 0 then
+  jv-=1
+  jc-=1
+  py-=jv
+ else
+  jv=0
+  jc=0
+ end
+end
+
+function collides(x,y,w,h)
+ setbounds()
+ if px <= (x+w) and (px+pw) >= x and
+ py <= (y+h)+dampy and (py+ph)-dampy >= y then
+  return true
+ end  
+end
+
+function setbounds()
+ if gameframe==1 then
+  if rolling==true then
+   pw=5
+   ph=7
+   dampy=0
+  else
+   pw=5
+   ph=16
+   dampy=8
+  end
+ end
+ if gameframe==2 then
+  if rolling==true then
+   pw=5
+   ph=7
+   dampy=0
+  else
+   pw=5
+   ph=8
+   dampy=0
+  end
+ end
+ if gameframe==3 then
+  pw=4
+  ph=6
+  dampy=0
+ end
+end
+
+function endgrade()
+ if coins < totalcoins-62 then
+  grade="f"
+ end
+ if coins >= totalcoins-62 then
+  grade="d-"
+ end
+  if coins >= totalcoins-56 then
+  grade="c"
+ end
+ if coins >= totalcoins-44 then
+  grade="b-"
+ end
+ if coins >= totalcoins-32 then
+  grade="b+"
+ end
+ if coins >= totalcoins-20 then
+  grade="a-"
+ end
+ if coins >= totalcoins-8 then
+  grade="a+"
+ end
+end
+
+function _draw()
+  cls()
+  
+  rectfill(0,0,128,128,7)
+  
+  if gameframe == 0 then
+   spr(232,ancx+30,0,8,2)
+   print("running out of..",ancx+31,20,0)
+   print("..screen space!",ancx+35,28,0)
+   print("⬆️ jump for coins",ancx+24,50,0)
+   print("⬇️ roll through boxes",ancx+24,60,0)
+   if counter%20<=10 then
+    print("press z to start!",ancx+30,90,8)
+   end
+  end
+  
+  if gameframe == 1 then 
+  --laptop
+  rectfill(ancx+4,90,ancx+124,98,0)
+  rectfill(ancx+5,91,ancx+123,97,5)
+  line(ancx+4,90,ancx+14,80,0)
+  line(ancx+124,90,ancx+114,80,0)
+  rectfill(ancx+14,80,ancx+114,20,0)
+  rectfill(ancx+15,79,ancx+113,21,5)
+  rectfill(ancx+scrx,scry,ancx+scrx+scrw,scry+scrh,12)
+  line(ancx+60,24,ancx+69,24,0)
+  line(ancx+59,23,ancx+69,23,0)
+  line(ancx+60,22,ancx+69,22,0)
+  circfill(ancx+70,23,1,6)
+  
+  --game level
+  rectfill(ancx+scrx,69,ancx+scrx+scrw,72,4)
+  line(ancx+scrx,68,ancx+scrx+scrw,68,0)
+  rectfill(ancx+scrx,65,ancx+scrx+scrw,67,11)
+  line(ancx+scrx,64,ancx+scrx+scrw,64,0)
+  
+  spr(pspr,ancx+px,py-8)
+  spr(pspr+16,ancx+px,py)
+  
+  --coin
+  spr(coinspr,ancx+coinx,coiny)
+  
+  --box
+  palt(0,false)
+  spr(boxspr,ancx+boxx,boxy)
+  palt(0,true)
+  
+  --outer masking
+  rectfill(ancx+112,21,ancx+113,79,5)
+  rectfill(ancx+15,21,ancx+16,79,5)
+  line(ancx+14,21,ancx+14,79,0)
+  line(ancx+114,21,ancx+114,79,0)
+  rectfill(ancx+0,20,ancx+13,80,7)
+  rectfill(ancx+115,20,ancx+128,80,7)
+  
+  --ui
+  spr(32,ancx+scrx,scry+1)
+  print(coins,ancx+scrx+8,scry+2,1)
+  end
+  
+  if gameframe == 2 then
+  
+  --gameboy
+  rectfill(ancx+48,26,ancx+80,58,12)
+  
+  rectfill(ancx+44,20,ancx+84,80,0)
+  rectfill(ancx+37,18,ancx+91,106,1)
+  rectfill(ancx+40,21,ancx+88,67,0)
+  rectfill(ancx+48,26,ancx+80,58,12)
+  rectfill(ancx+42,88,ancx+56,84,0)
+  rectfill(ancx+47,79,ancx+51,93,0)
+  line(ancx+60,24,ancx+69,24,0)
+  line(ancx+59,23,ancx+69,23,0)
+  line(ancx+60,22,ancx+69,22,0)
+  circfill(ancx+73,88,3,0)
+  circfill(ancx+84,85,3,0)
+  print("c",ancx+55,61,8)
+  print("o",ancx+59,61,2)
+  print("l",ancx+63,61,11)
+  print("o",ancx+67,61,10)
+  print("r",ancx+71,61,12)
+  
+  --game level
+  line(ancx+scrx,scry+scrh,ancx+scrx+scrw,scry+scrh,4)
+  line(ancx+scrx,scry+scrh-1,ancx+scrx+scrw,scry+scrh-1,11)
+  
+  spr(pspr,ancx+px,py)
+  
+  --coin
+  spr(coinspr,ancx+coinx,coiny)
+  
+  --box
+  palt(0,false)
+  spr(boxspr,ancx+boxx,boxy)
+  palt(0,true)
+  
+  --outer masking
+  rectfill(ancx+92,20,ancx+128,60,7)
+  rectfill(ancx+81,21,ancx+88,66,0)
+  rectfill(ancx+89,21,ancx+91,66,1)
+  rectfill(ancx+40,21,ancx+47,66,0)
+  circfill(ancx+43,35,1,8)
+  
+  --ui
+  spr(32,ancx+scrx,scry+1)
+  print(coins,ancx+scrx+8,scry+2,1)
+  end
+ 
+  if gameframe==3 then
+  
+  --smartwatch
+  rectfill(ancx+54,40,ancx+74,88,6)
+  rect(ancx+54,40,ancx+74,88,0)
+  circfill(ancx+64,64,15,6)
+  circfill(ancx+64,64,12,12)
+  
+  --game level
+  line(ancx+55,72,ancx+73,72,11)
+  line(ancx+57,73,ancx+71,73,4)
+  line(ancx+59,74,ancx+69,74,4)
+  line(ancx+61,75,ancx+67,75,4)
+  
+  spr(pspr,ancx+px,py)
+  
+  --coin
+  spr(coinspr,ancx+coinx,coiny)
+  
+  --box
+  spr(boxspr,ancx+boxx,boxy)
+  
+  --flag
+  spr(42,flagx,flagy)
+  
+  --outer masking
+  circ(ancx+64,64,12,6)
+  circ(ancx+64,64,13,6)
+  circ(ancx+64,65,13,6)
+  circ(ancx+63,64,13,6)
+  circ(ancx+64,63,13,6)
+  circ(ancx+64,64,14,6)
+  circ(ancx+64,64,15,0)
+  rectfill(ancx+80,40,ancx+128,88,7)
+  rectfill(ancx+0,40,ancx+48,88,7)
+  rectfill(ancx+79,62,ancx+82,66,6)
+  rect(ancx+79,62,ancx+82,66,0)
+  line(ancx+56,52,ancx+58,53,6)
+  line(ancx+49,50,ancx+49,60,7)
+  line(ancx+50,50,ancx+50,57,7)
+  line(ancx+51,50,ancx+51,55,7)
+  line(ancx+52,50,ancx+52,54,7)
+  line(ancx+79,50,ancx+79,60,7)
+  line(ancx+78,50,ancx+78,57,7)
+  line(ancx+77,50,ancx+77,55,7)
+  line(ancx+76,50,ancx+76,54,7)
+  line(ancx+49,68,ancx+49,74,7)
+  line(ancx+50,71,ancx+50,74,7)
+  line(ancx+79,68,ancx+79,74,7)
+  line(ancx+78,71,ancx+78,74,7)
+  end
+ 
+  if gameframe == 4 then
+   print("results",ancx+50,20,0)
+   spr(ancx+32,30,40)
+   print("coins "..coins,ancx+40,41)
+   spr(ancx+32,30,50)
+   print("collected "..collectedcoins.."/"..totalcoins,ancx+40,51)
+   spr(ancx+36,30,60)
+   print("hit "..boxeshit.."/"..totalboxes,ancx+40,61)
+   spr(ancx+36,30,70)
+   print("smashed "..boxessmashed.."/"..totalboxes,ancx+40,71)
+   print("grade "..grade,ancx+50,85)
+  end
+ 
+  --outer ui
+  if gameframe > 0 and gameframe < 4 then
+   spr(48,ancx+104,2)
+   print("downscale",ancx+64,4,1)
+   print(timer,ancx+117,4,1)
+  end
+end
